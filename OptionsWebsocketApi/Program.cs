@@ -1,3 +1,4 @@
+using OptionsWebsocketApi.Hubs;
 using OptionsWebsocketApi.Models.Configuration;
 using Serilog;
 using Serilog.Events;
@@ -21,6 +22,7 @@ builder.Services.AddLogging(t =>
     t.AddSerilog(dispose: true);
 });
 
+builder.Services.AddSignalR().AddMessagePackProtocol();
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
@@ -44,6 +46,8 @@ app.UseWebSockets();
 app.UseAuthorization();
 
 app.MapControllers();
+
+app.MapHub<OptionsHub>("/options");
 
 app.Run();
 

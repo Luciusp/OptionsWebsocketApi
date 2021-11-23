@@ -1,7 +1,10 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using OptionsWebsocketApi.Models.Polygon;
+using OptionsWebsocketApi.Utilities;
 using System.Net;
 using System.Net.WebSockets;
 using System.Text;
+using System.Text.Json;
 
 namespace OptionsWebsocketApi.Controllers
 {
@@ -11,6 +14,7 @@ namespace OptionsWebsocketApi.Controllers
     {
         private readonly IConfiguration _config;
         private readonly ILogger<Socket> _logger;
+        private static readonly Random _random = new();
         public Socket(IConfiguration config, ILogger<Socket> logger)
         {
             _config = config;
@@ -24,7 +28,15 @@ namespace OptionsWebsocketApi.Controllers
             {
                 using WebSocket webSocket = await
                                    HttpContext.WebSockets.AcceptWebSocketAsync();
-                await RelayOptions(HttpContext, webSocket);
+
+                int i = 0;
+                while (true)
+                {
+                    
+                    await RelayOptions(webSocket, i);
+                    i++;
+                    Thread.Sleep(_random.Next(0, 2) * _random.Next(100, 1000));
+                }
             }
             else
             {
@@ -32,31 +44,17 @@ namespace OptionsWebsocketApi.Controllers
             }
         }
 
-        private static async Task RelayOptions(HttpContext httpContext, WebSocket webSocket)
+        private static async Task RelayOptions(WebSocket webSocket, int i)
         {
-            var buffer = new byte[1024 * 4];
-
-            var numOptions = 10;
-            for (int i = 0; i < numOptions; i++)
+            var oeList = new List<OptionEvent>();
+            for (int j = 0; j < _random.Next(1,10); j++)
             {
-                var msg = $"this is message {i}";
-                var msgInBytes = Encoding.ASCII.GetBytes(msg);
-                await webSocket.SendAsync(new ArraySegment<byte>(msgInBytes, 0, msgInBytes.Length), WebSocketMessageType.Text, true, CancellationToken.None);
+                var oe = OptionsHelper.GenerateRandomOptionEvent();
+                oeList.Add(oe);
             }
-            
-        }
+            var msgInBytes = Encoding.ASCII.GetBytes(JsonSerializer.Serialize(oeList));
+            await webSocket.SendAsync(new ArraySegment<byte>(msgInBytes, 0, msgInBytes.Length), WebSocketMessageType.Text, true, CancellationToken.None);
 
-        private static async Task Echo(HttpContext httpContext, WebSocket webSocket)
-        {
-            var buffer = new byte[1024 * 4];
-            WebSocketReceiveResult result = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
-            while (!result.CloseStatus.HasValue)
-            {
-                await webSocket.SendAsync(new ArraySegment<byte>(buffer, 0, result.Count), result.MessageType, result.EndOfMessage, CancellationToken.None);
-
-                result = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken.None);
-            }
-            await webSocket.CloseAsync(result.CloseStatus.Value, result.CloseStatusDescription, CancellationToken.None);
         }
     }
 }
