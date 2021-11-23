@@ -37,7 +37,9 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+app.UseWebSockets();
+
+//app.UseHttpsRedirection();
 
 app.UseAuthorization();
 
